@@ -36,10 +36,10 @@
 
 /* newer versions of libavutil (0.5+) renamed RGBA32 to just RGB32 */
 #ifndef PIX_FMT_RGBA32
-#define PIX_FMT_RGBA32	PIX_FMT_RGB32
+#define PIX_FMT_RGBA32	AV_PIX_FMT_RGB32
 #endif
 
-enum PixelFormat find_av_pix_fmt(int, unsigned long, unsigned long, unsigned long);
+enum AVPixelFormat find_av_pix_fmt(int, unsigned long, unsigned long, unsigned long);
 
 /* deprecated FFMPEG functions that have now been removed */
 int my_avcodec_decode_audio2(AVCodecContext *, int16_t *, int *, const uint8_t *, int);

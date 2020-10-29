@@ -22,7 +22,7 @@ typedef struct
 	XImage *current_frame;			/* frame we are currently displaying */
 	XShmSegmentInfo shm;			/* shared memory used by current_frame */
 	AVPicture rgb_frame;			/* ffmpeg wrapper for current_frame SHM data */
-	enum PixelFormat out_format;		/* rgb_frame ffmpeg pixel format */
+	enum AVPixelFormat out_format;		/* rgb_frame ffmpeg pixel format */
         struct SwsContext *sws_ctx;		/* converts to RGB and resizes if needed */
 	FrameSize resize_in;			/* input dimensions */
 	FrameSize resize_out;			/* output dimensions */

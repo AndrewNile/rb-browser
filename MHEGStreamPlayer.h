@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
 
 #include "ISO13522-MHEG-5.h"
 #include "MHEGBackend.h"
@@ -31,7 +32,7 @@
 typedef struct
 {
 	double pts;			/* presentation time stamp */
-	enum PixelFormat pix_fmt;
+	enum AVPixelFormat pix_fmt;
 	unsigned int width;
 	unsigned int height;
 	AVPicture frame;
@@ -41,7 +42,7 @@ typedef struct
 
 DEFINE_LIST_OF(VideoFrame);
 
-LIST_TYPE(VideoFrame) *new_VideoFrameListItem(double, enum PixelFormat, unsigned int, unsigned int, AVFrame *);
+LIST_TYPE(VideoFrame) *new_VideoFrameListItem(double, enum AVPixelFormat, unsigned int, unsigned int, AVFrame *);
 void free_VideoFrameListItem(LIST_TYPE(VideoFrame) *);
 
 /* list of decoded audio samples to play */

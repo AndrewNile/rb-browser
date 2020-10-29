@@ -28,7 +28,7 @@ LIST_OF(VideoFrame) *free_vframes = NULL;
 pthread_mutex_t free_vframes_lock = PTHREAD_MUTEX_INITIALIZER;
 
 LIST_TYPE(VideoFrame) *
-new_VideoFrameListItem(double pts, enum PixelFormat pix_fmt, unsigned int width, unsigned int height, AVFrame *frame)
+new_VideoFrameListItem(double pts, enum AVPixelFormat pix_fmt, unsigned int width, unsigned int height, AVFrame *frame)
 {
 	LIST_TYPE(VideoFrame) *vf;
 	int frame_size;
@@ -467,7 +467,7 @@ decode_thread(void *arg)
 	{
 		if((video_codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 			fatal("Out of memory");
-		if((codec_id = find_av_codec_id(p->video_type)) == CODEC_ID_NONE
+		if((codec_id = find_av_codec_id(p->video_type)) == AV_CODEC_ID_NONE
 		|| (codec = avcodec_find_decoder(codec_id)) == NULL)
 			fatal("Unsupported video codec");
 		if(avcodec_open2(video_codec_ctx, codec, NULL) < 0)
@@ -479,7 +479,7 @@ decode_thread(void *arg)
 	{
 		if((audio_codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 			fatal("Out of memory");
-		if((codec_id = find_av_codec_id(p->audio_type)) == CODEC_ID_NONE
+		if((codec_id = find_av_codec_id(p->audio_type)) == AV_CODEC_ID_NONE
 		|| (codec = avcodec_find_decoder(codec_id)) == NULL)
 			fatal("Unsupported audio codec");
 		if(avcodec_open2(audio_codec_ctx, codec, NULL) < 0)
@@ -1010,44 +1010,44 @@ find_av_codec_id(int stream_type)
 {
 	enum CodecID codec_id;
 
-	codec_id = CODEC_ID_NONE;
+	codec_id = AV_CODEC_ID_NONE;
 	switch(stream_type)
 	{
 	case STREAM_TYPE_AUDIO_MPEG1:
 	case STREAM_TYPE_AUDIO_MPEG2:
-		codec_id = CODEC_ID_MP3;
+		codec_id = AV_CODEC_ID_MP3;
 		break;
 
 	case STREAM_TYPE_VIDEO_MPEG1:
 	case STREAM_TYPE_VIDEO_MPEG2:
-		codec_id = CODEC_ID_MPEG2VIDEO;
+		codec_id = AV_CODEC_ID_MPEG2VIDEO;
 		break;
 
 	case STREAM_TYPE_VIDEO_MPEG4:
-		codec_id = CODEC_ID_MPEG4;
+		codec_id = AV_CODEC_ID_MPEG4;
 		break;
 
 	case STREAM_TYPE_VIDEO_H264:
-		codec_id = CODEC_ID_H264;
+		codec_id = AV_CODEC_ID_H264;
 		break;
 
 	case STREAM_TYPE_AUDIO_AAC:
-		codec_id = CODEC_ID_AAC;
+		codec_id = AV_CODEC_ID_AAC;
 		break;
 
 	case STREAM_TYPE_AUDIO_AC3:
-		codec_id = CODEC_ID_AC3;
+		codec_id = AV_CODEC_ID_AC3;
 		break;
 
 	case STREAM_TYPE_AUDIO_DTS:
-		codec_id = CODEC_ID_DTS;
+		codec_id = AV_CODEC_ID_DTS;
 		break;
 
 	default:
 		break;
 	}
 
-	if(codec_id == CODEC_ID_NONE)
+	if(codec_id == AV_CODEC_ID_NONE)
 		error("Unsupported audio/video codec (MPEG stream type=%d)", stream_type);
 
 	return codec_id;

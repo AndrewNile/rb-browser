@@ -874,7 +874,7 @@ MHEGDisplay_newMPEGBitmap(MHEGDisplay *d, OctetString *mpeg)
 	if((codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 		fatal("Out of memory");
 
-	if((codec = avcodec_find_decoder(CODEC_ID_MPEG2VIDEO)) == NULL)
+	if((codec = avcodec_find_decoder(AV_CODEC_ID_MPEG2VIDEO)) == NULL)
 		fatal("Unable to initialise MPEG decoder");
 
 	if(avcodec_open2(codec_ctx, codec, NULL) < 0)
@@ -972,7 +972,7 @@ MHEGBitmap_fromRGBA(MHEGDisplay *d, unsigned char *rgba, unsigned int width, uns
 	unsigned int i, npixs;
 	XImage *ximg;
 	XRenderPictFormat *pic_format;
-	enum PixelFormat av_format;
+	enum AVPixelFormat av_format;
 	GC gc;
 
 	bitmap = safe_malloc(sizeof(MHEGBitmap));

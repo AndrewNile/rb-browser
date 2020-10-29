@@ -133,7 +133,7 @@ vo_xshm_create_frame(vo_xshm_ctx *v, unsigned int out_width, unsigned int out_he
 
 	/* work out what ffmpeg pixel format matches our XImage format */
 	if((v->out_format = find_av_pix_fmt(v->current_frame->bits_per_pixel,
-					    d->vis->red_mask, d->vis->green_mask, d->vis->blue_mask)) == PIX_FMT_NONE)
+					    d->vis->red_mask, d->vis->green_mask, d->vis->blue_mask)) == AV_PIX_FMT_NONE)
 		fatal("Unsupported XImage pixel format");
 
 	rgb_size = v->current_frame->bytes_per_line * out_height;

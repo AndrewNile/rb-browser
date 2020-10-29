@@ -35,12 +35,12 @@
  * returns PIX_FMT_NONE if none match
  */
 
-enum PixelFormat
+enum AVPixelFormat
 find_av_pix_fmt(int bpp, unsigned long rmask, unsigned long gmask, unsigned long bmask)
 {
-	enum PixelFormat fmt;
+	enum AVPixelFormat fmt;
 
-	fmt = PIX_FMT_NONE;
+	fmt = AV_PIX_FMT_NONE;
 	switch(bpp)
 	{
 	case 32:
@@ -50,16 +50,16 @@ find_av_pix_fmt(int bpp, unsigned long rmask, unsigned long gmask, unsigned long
 
 	case 24:
 		if(rmask == 0xff0000 && gmask == 0xff00 && bmask == 0xff)
-			fmt = PIX_FMT_RGB24;
+			fmt = AV_PIX_FMT_RGB24;
 		else if(rmask == 0xff && gmask == 0xff00 && bmask == 0xff0000)
-			fmt = PIX_FMT_BGR24;
+			fmt = AV_PIX_FMT_BGR24;
 		break;
 
 	case 16:
 		if(rmask == 0xf800 && gmask == 0x07e0 && bmask == 0x001f)
-			fmt = PIX_FMT_RGB565;
+			fmt = AV_PIX_FMT_RGB565;
 		else if(rmask == 0x7c00 && gmask == 0x03e0 && bmask == 0x001f)
-			fmt = PIX_FMT_RGB555;
+			fmt = AV_PIX_FMT_RGB555;
 		break;
 
 	default:

@@ -1,12 +1,12 @@
 rb-browser
 
-Installation:
-Install dependencies - eg:
+This is a fork of rb-browser with updates to make it work with modern ffmpeg libs, it has been tested on a typical Ubuntu 18.04 system.
+
+Dependencies:
 
 sudo apt install libfreetype6-dev libavformat-dev libxft-dev ffmpeg-dev libavcodec-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev xsltproc
 
-Build:
-make
+To build simply run 'make' (presuming you have the usual build tools for your platform installed
 
 
 Usage:

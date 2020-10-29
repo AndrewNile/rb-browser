@@ -78,7 +78,7 @@ my_avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples, int *frame_siz
 	avpkt.data = (uint8_t *) buf;
 	avpkt.size = buf_size;
 
-	return avcodec_decode_audio3(avctx, samples, frame_size_ptr, &avpkt);
+	return avcodec_decode_audio4(avctx, samples, frame_size_ptr, &avpkt);
 }
 
 int

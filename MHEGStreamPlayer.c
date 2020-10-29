@@ -489,7 +489,7 @@ decode_thread(void *arg)
 		p->audio_codec = audio_codec_ctx;
 	}
 
-	if((frame = avcodec_alloc_frame()) == NULL)
+	if((frame = av_frame_alloc()) == NULL)
 		fatal("Out of memory");
 
 	demux_apid = p->have_audio ? p->audio_pid : -1;

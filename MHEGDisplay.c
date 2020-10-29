@@ -880,9 +880,9 @@ MHEGDisplay_newMPEGBitmap(MHEGDisplay *d, OctetString *mpeg)
 	if(avcodec_open2(codec_ctx, codec, NULL) < 0)
 		fatal("Unable to open video codec");
 
-	if((yuv_frame = avcodec_alloc_frame()) == NULL)
+	if((yuv_frame = av_frame_alloc()) == NULL)
 		fatal("Out of memory");
-	if((rgb_frame = avcodec_alloc_frame()) == NULL)
+	if((rgb_frame = av_frame_alloc()) == NULL)
 		fatal("Out of memory");
 
 	/* ffmpeg may read passed the end of the buffer, so pad it out */

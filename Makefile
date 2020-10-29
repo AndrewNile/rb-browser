@@ -10,10 +10,10 @@ DEFS=-D_REENTRANT -D_GNU_SOURCE
 # safe_malloc debugging
 #DEFS=-DDEBUG_ALLOC -D_REENTRANT -D_GNU_SOURCE
 INCS=`freetype-config --cflags`
-LIBS=-lm -lz -L/usr/X11R6/lib -lX11 -lXext -lXt -lXrender -lXft -lpng -lavformat -lavcodec -lavutil -lasound -lpthread -lfontconfig -lfreetype
+LIBS=-lm -lz -L/usr/X11R6/lib -lX11 -lXext -lXt -lXrender -lXft -lpng -lavformat -lavcodec -lavutil -lasound -lpthread -lfontconfig -lfreetype -lswscale
 
 # if libswscale is not in libavcodec, add a -lswscale to the LIBS
-LIBS+=`(ldconfig -p | fgrep -q libswscale) && echo "-lswscale"`
+#LIBS+=`(ldconfig -p | fgrep -q libswscale) && echo "-lswscale"`
 
 CLASSES=ActionClass.o	\
 	ApplicationClass.o	\
@@ -130,7 +130,7 @@ install:	rb-browser rb-keymap
 	install -m 755 rb-keymap ${DESTDIR}/bin
 
 clean:
-	rm -f rb-browser rb-keymap xsd2c dertest dertest-mheg.[ch] ${OBJS} ${OBJS:.o=.d} ISO13522-MHEG-5.[ch] clone.[ch] rtti.h gmon.out core
+	rm -f rb-browser rb-keymap rb-keymap.d xsd2c xsd2c.d dertest dertest-mheg.[ch] ${OBJS} ${OBJS:.o=.d} ISO13522-MHEG-5.[ch] clone.[ch] rtti.h gmon.out core
 
 TARDIR=`basename ${PWD}`
 

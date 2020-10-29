@@ -115,11 +115,13 @@ OctetStringVariableClass_Append(OctetStringVariableClass *v, Append *params, Oct
 	target = &v->inst.Value.u.octetstring;
 	append = GenericOctetString_getOctetString(&params->append_value, caller_gid);
 
-	verbose("Append: '%.*s' + '%.*s'", target->size, target->data, append->size, append->data);
+	if(append) {
+		verbose("Append: '%.*s' + '%.*s'", target->size, target->data, append->size, append->data);
 
-	target->data = safe_realloc(target->data, target->size + append->size);
-	memcpy(&target->data[target->size], append->data, append->size);
-	target->size += append->size;
+		target->data = safe_realloc(target->data, target->size + append->size);
+		memcpy(&target->data[target->size], append->data, append->size);
+		target->size += append->size;
+	}
 
 	return;
 }

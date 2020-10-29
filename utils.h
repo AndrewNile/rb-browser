@@ -41,6 +41,10 @@
 
 enum PixelFormat find_av_pix_fmt(int, unsigned long, unsigned long, unsigned long);
 
+/* deprecated FFMPEG functions that have now been removed */
+int my_avcodec_decode_audio2(AVCodecContext *, int16_t *, int *, const uint8_t *, int);
+int my_avcodec_decode_video(AVCodecContext *, AVFrame *, int *, const uint8_t *, int);
+
 unsigned int char2hex(unsigned char);
 
 int next_utf8(unsigned char *, int, int *);

@@ -10,8 +10,6 @@
 int si_get_index(OctetString *);
 OctetString *si_get_url(int);
 
-bool si_tune_index(int);
-
 unsigned int si_get_network_id(OctetString *);
 unsigned int si_get_transport_id(OctetString *);
 unsigned int si_get_service_id(OctetString *);

@@ -93,20 +93,6 @@ si_get_url(int index)
 	return &si_channel[index];
 }
 
-bool
-si_tune_index(int index)
-{
-	if(index < 0 || index > si_max_index)
-	{
-		error("SI_TuneIndex: invalid service index (%d); range is 0-%d", index, si_max_index);
-		return false;
-	}
-
-	MHEGEngine_quit(QuitReason_Retune, &si_channel[index]);
-
-	return true;
-}
-
 /*
  * URL format is:
  * dvb://original_network_id.[transport_id].service_id

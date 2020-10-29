@@ -30,23 +30,24 @@
 
 /* EngineEvent EventTag values */
 /* 0 and 1 are reserved */
-#define EngineEvent_GroupIDRefError	2
-#define EngineEvent_ContentRefError	3
-#define EngineEvent_TextKeyFunction	4
+#define EngineEvent_GroupIDRefError		2
+#define EngineEvent_ContentRefError		3
+#define EngineEvent_TextKeyFunction		4
 /* 5 is reserved */
-#define EngineEvent_VideoPrefChanged	6
-#define EngineEvent_PauseResume		7
+#define EngineEvent_VideoPrefChanged		6
+#define EngineEvent_PauseResume			7
 /* 8 is reserved */
-#define EngineEvent_NetworkBootInfo	9
-/* 10-15 are reserved */
-#define EngineEvent_CancelKeyFunction	16
+#define EngineEvent_NetworkBootInfo		9
+#define EngineEvent_NonDestructiveTuneOK	10
+/* 11-15 are reserved */
+#define EngineEvent_CancelKeyFunction		16
 /* 17-99 are reserved */
-#define EngineEvent_RedKeyFunction	100
-#define EngineEvent_GreenKeyFunction	101
-#define EngineEvent_YellowKeyFunction	102
-#define EngineEvent_BlueKeyFunction	103
+#define EngineEvent_RedKeyFunction		100
+#define EngineEvent_GreenKeyFunction		101
+#define EngineEvent_YellowKeyFunction		102
+#define EngineEvent_BlueKeyFunction		103
 /* from the NZ profile */
-#define EngineEvent_EPGKeyFunction	300
+#define EngineEvent_EPGKeyFunction		300
 /* all other values are reserved */
 
 /* EventTag key numbers for UserInput events */
@@ -188,6 +189,7 @@ typedef struct
 	LIST_OF(MHEGAction) *main_actionq;		/* UK MHEG Profile event processing method */
 	LIST_OF(MHEGAction) *temp_actionq;		/* UK MHEG Profile event processing method */
 	LIST_OF(PersistentData) *persistent;		/* persistent files */
+	int tuneinfo;					/* SI_TuneIndexInfo value */
 } MHEGEngine;
 
 /* prototypes */
@@ -206,6 +208,9 @@ void MHEGEngine_quit(QuitReason, OctetString *);
 
 ApplicationClass *MHEGEngine_getActiveApplication(void);
 SceneClass *MHEGEngine_getActiveScene(void);
+
+int MHEGEngine_getTuneInfo(void);
+void MHEGEngine_setTuneInfo(int);
 
 void MHEGEngine_addVisibleObject(RootClass *);
 void MHEGEngine_removeVisibleObject(RootClass *);

@@ -67,7 +67,7 @@ readpng_get_image(unsigned char *png_data, unsigned int png_size, png_uint_32 *w
 	png_bytepp row_pointers = NULL;
 
 	/* check the signature */
-	if(!png_check_sig(png_data, 8))
+	if(png_sig_cmp(png_data, 0, 8) != 0)
 		return NULL;
 
 	/* init libpng data structures */

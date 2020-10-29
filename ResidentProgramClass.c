@@ -24,6 +24,7 @@
 #include "si.h"
 
 /* internal functions */
+bool unknown_program(ResidentProgramClass *);
 bool run_program(ResidentProgramClass *, LIST_OF(Parameter) *, OctetString *, bool);
 bool check_parameters(LIST_OF(Parameter) *, unsigned int, ...);
 Parameter *get_parameter(LIST_OF(Parameter) *, unsigned int);
@@ -67,14 +68,18 @@ ResidentProgramClass_Preparation(ResidentProgramClass *t)
 	return;
 }
 
-void
+bool
 ResidentProgramClass_Activation(ResidentProgramClass *t)
 {
 	verbose("ResidentProgramClass: %s; Activation", ExternalReference_name(&t->rootClass.inst.ref));
 
+	/* MHEG spec says if the program is unknown, then disregard this action */
+	if(unknown_program(t))
+		return false;
+
 	/* has it already been activated */
 	if(!RootClass_Activation(&t->rootClass))
-		return;
+		return true;
 
 	/* set RunningStatus */
 	t->rootClass.inst.RunningStatus = true;
@@ -82,7 +87,7 @@ ResidentProgramClass_Activation(ResidentProgramClass *t)
 	/* generate IsRunning event */
 	MHEGEngine_generateEvent(&t->rootClass.inst.ref, EventType_is_running, NULL);
 
-	return;
+	return true;
 }
 
 void
@@ -159,8 +164,11 @@ ResidentProgramClass_Call(ResidentProgramClass *p, Call *params, OctetString *ca
 
 	verbose("ResidentProgramClass: %s; Call '%.*s'", ExternalReference_name(&p->rootClass.inst.ref), p->name.size, p->name.data);
 
+	/* Activation will fail for unknown programs */
+	if(!ResidentProgramClass_Activation(p))
+		return;
+
 	/* run it and wait for it to complete */
-	ResidentProgramClass_Activation(p);
 	rc = run_program(p, params->parameters, caller_gid, false);
 
 	/* store the return value */
@@ -199,11 +207,14 @@ ResidentProgramClass_Fork(ResidentProgramClass *p, Fork *params, OctetString *ca
 
 	verbose("ResidentProgramClass: %s; Fork '%.*s'", ExternalReference_name(&p->rootClass.inst.ref), p->name.size, p->name.data);
 
+	/* Activation will fail for unknown programs */
+	if(!ResidentProgramClass_Activation(p))
+		return;
+
 	/* run it in the background */
 /******************************************************************************************/
 /* TODO */
 printf("TODO: ResidentProgramClass_Fork not yet implemented - running in foreground\n");
-	ResidentProgramClass_Activation(p);
 	rc = run_program(p, params->parameters, caller_gid, true);
 /* return immediately */
 /******************************************************************************************/
@@ -234,11 +245,7 @@ printf("TODO: ResidentProgramClass_Fork not yet implemented - running in foregro
 }
 
 /*
- * run the given program (identified by the name field in the ResidentProgramClass)
- * returns true if the program succeeds
- * sets the parameters to the values described by the UK MHEG Profile
- * caller_gid is used to resolve Generic variables in the parameters
- * if forked is true, return immediately and run the program in the background
+ * programs defined in the UK MHEG Profile
  */
 
 struct
@@ -274,6 +281,36 @@ struct
 	{ "DBG", "Debug",			prog_Debug },
 	{ "", "", NULL }
 };
+
+/*
+ * returns true if the program is not found in our list
+ */
+
+bool
+unknown_program(ResidentProgramClass *p)
+{
+	unsigned int i;
+
+	for(i=0; resident_progs[i].func!=NULL; i++)
+	{
+		if(OctetString_strcmp(&p->name, resident_progs[i].short_name) == 0
+		|| OctetString_strcmp(&p->name, resident_progs[i].long_name) == 0)
+			return false;
+	}
+
+	/* not found */
+	error("Unknown ResidentProgram: '%.*s'", p->name.size, p->name.data);
+
+	return true;
+}
+
+/*
+ * run the given program (identified by the name field in the ResidentProgramClass)
+ * returns true if the program succeeds
+ * sets the parameters to the values described by the UK MHEG Profile
+ * caller_gid is used to resolve Generic variables in the parameters
+ * if forked is true, return immediately and run the program in the background
+ */
 
 bool
 run_program(ResidentProgramClass *p, LIST_OF(Parameter) *params, OctetString *caller_gid, bool forked)
@@ -976,6 +1013,8 @@ prog_SI_TuneIndex(LIST_OF(Parameter) *params, OctetString *caller_gid)
 {
 	GenericInteger *serviceIndex_par;
 	int serviceIndex;
+	OctetString *service_url;
+	int tuneinfo;
 
 	if(!check_parameters(params, 1, Parameter_new_generic_integer))	/* in: serviceIndex */
 	{
@@ -986,7 +1025,80 @@ prog_SI_TuneIndex(LIST_OF(Parameter) *params, OctetString *caller_gid)
 	serviceIndex_par = &(get_parameter(params, 1)->u.new_generic_integer);
 	serviceIndex = GenericInteger_getInteger(serviceIndex_par, caller_gid);
 
-	(void) si_tune_index(serviceIndex);
+	/* what do we need to tune to */
+	if((service_url = si_get_url(serviceIndex)) == NULL)
+	{
+		error("ResidentProgram: SI_TuneIndex (TIn): invalid service index (%d)", serviceIndex);
+		return false;
+	}
+
+	/*
+	 * see ES 202 184 v2.1.1, section 11.10.8.4 for details of the TuneInfo parameter
+	 */
+	tuneinfo = MHEGEngine_getTuneInfo();
+	verbose("ResidentProgram: SI_TuneIndex: tuneinfo=%d", tuneinfo);
+
+	/* tuneinfo, bit 0: 'quiet' tune flag */
+	/* don't care */
+
+	/* tuneinfo, bit 1: destructive/non-destructive tune */
+	if((tuneinfo & 0x02) != 0)
+	{
+		/* non-destructive tune, ie current app keeps running */
+		ApplicationClass *current_app = MHEGEngine_getActiveApplication();
+		EventData event_tag;
+		bool stream_playing = MHEGStreamPlayer_isPlaying();
+		verbose("ResidentProgram: SI_TuneIndex: non-destructive tune");
+		/*
+		 * if a stream is playing, stop it now
+		 * otherwise, when we retune the player will block in fread trying to read data from the old service
+		 * and we will never be able to stop it
+		 */
+		if(stream_playing)
+			MHEGStreamPlayer_stop();
+		MHEGEngine_retune(service_url);
+		/*
+		 * if we were playing, restart
+		 * if necessary, this will re-evaluate any A/V PIDs based on the new service ID
+		 */
+		if(stream_playing)
+			MHEGStreamPlayer_play();
+		/* let the app know we have successfully retuned */
+		event_tag.choice = EventData_integer;
+		event_tag.u.integer = EngineEvent_NonDestructiveTuneOK;
+		MHEGEngine_generateAsyncEvent(&current_app->rootClass.inst.ref, EventType_engine_event, &event_tag);
+	}
+	else
+	{
+		/* destructive tune, ie current app dies */
+		verbose("ResidentProgram: SI_TuneIndex: destructive tune");
+		MHEGEngine_quit(QuitReason_Retune, service_url);
+	}
+
+	/* tuneinfo, bit 2: explicit carousel ID flag */
+	if((tuneinfo & 0x04) == 0)
+	{
+		/* tuneinfo, bit 3: carousel ID mapping flag */
+		if((tuneinfo & 0x08) == 0)
+		{
+printf("TODO: SI_TuneIndex: tuneinfo=%d; use current carousel\n", tuneinfo);
+		}
+		else
+		{
+printf("TODO: SI_TuneIndex: tuneinfo=%d; use initial carousel\n", tuneinfo);
+		}
+	}
+	else
+	{
+		/* carousel ID is in bits 8-15 */
+printf("TODO: SI_TuneIndex: tuneinfo=%d; carousel ID=%d\n", tuneinfo, (tuneinfo >> 8) & 0xff);
+	}
+
+	/* tuneinfo, bit 4: broadcaster interrupt flag */
+	if((tuneinfo & 0x10) != 0)
+	{
+printf("TODO: SI_TuneIndex: tuneinfo=%d; disable broadcaster interrupt flag\n", tuneinfo);
+	}
 
 	return true;
 }
@@ -994,13 +1106,22 @@ prog_SI_TuneIndex(LIST_OF(Parameter) *params, OctetString *caller_gid)
 bool
 prog_SI_TuneIndexInfo(LIST_OF(Parameter) *params, OctetString *caller_gid)
 {
+	GenericInteger *tuneinfo_par;
+	int tuneinfo;
+
 	if(!check_parameters(params, 1, Parameter_new_generic_integer))	/* in: tuneinfo */
 	{
 		error("ResidentProgram: SI_TuneIndexInfo (TII): wrong number or type of parameters");
 		return false;
 	}
-/* TODO */
-printf("TODO: program TII SI_TuneIndexInfo\n");
+
+	tuneinfo_par = &(get_parameter(params, 1)->u.new_generic_integer);
+	tuneinfo = GenericInteger_getInteger(tuneinfo_par, caller_gid);
+
+	verbose("ResidentProgram: SI_TuneIndexInfo(%d)", tuneinfo);
+
+	MHEGEngine_setTuneInfo(tuneinfo);
+
 	return true;
 }
 

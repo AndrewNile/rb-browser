@@ -226,6 +226,8 @@ MHEGEngine_run(void)
 			/* boot it */
 			verbose("Booting '%.*s'", boot_obj.size, boot_obj.data);
 			engine.quit_reason = QuitReason_DontQuit;
+			/* SI_TuneIndexInfo lifetime is per app, so reset to default value */
+			MHEGEngine_setTuneInfo(0);
 			/* load the app */
 			if((app = MHEGApp_loadApplication(&engine.active_app, &boot_obj)) == NULL)
 				return EXIT_FAILURE;
@@ -361,7 +363,8 @@ MHEGEngine_TransitionTo(TransitionTo *to, OctetString *caller_gid)
 
 	/* check we can find an ExternalReference for the new scene */
 	if(((ref = GenericObjectReference_getObjectReference(&to->target, caller_gid)) == NULL)
-	|| ref->choice != ObjectReference_external_reference)
+	|| ref->choice != ObjectReference_external_reference
+	|| ref->u.external_reference.group_identifier.size == 0)
 	{
 		if(ref != NULL)
 			error("TransitionTo: unable to transition to an internal reference");
@@ -529,6 +532,20 @@ MHEGEngine_getActiveScene(void)
 		fatal("MHEGEngine_getActiveScene: can't find SceneClass");
 
 	return &engine.active_app.scene->u.scene;
+}
+
+int
+MHEGEngine_getTuneInfo(void)
+{
+	return engine.tuneinfo;
+}
+
+void
+MHEGEngine_setTuneInfo(int tuneinfo)
+{
+	engine.tuneinfo = tuneinfo;
+
+	return;
 }
 
 /*
@@ -1589,7 +1606,7 @@ MHEGEngine_newBitmap(OctetString *data, bool have_hook, int hook)
 
 	if(have_hook == false
 	|| (have_hook == true && hook == ContentHook_Bitmap_PNG)
-	|| (data->size >= 8 && png_check_sig(data->data, 8)))
+	|| (data->size >= 8 && png_sig_cmp(data->data, 0, 8) == 0 ))
 		bitmap = MHEGDisplay_newPNGBitmap(&engine.display, data);
 	else if(have_hook == true && hook == ContentHook_Bitmap_MPEG)
 		bitmap = MHEGDisplay_newMPEGBitmap(&engine.display, data);

@@ -871,13 +871,13 @@ MHEGDisplay_newMPEGBitmap(MHEGDisplay *d, OctetString *mpeg)
 		return NULL;
 
 	/* use ffmpeg to convert the data into a standard format we can use as an XImage */
-	if((codec_ctx = avcodec_alloc_context()) == NULL)
+	if((codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 		fatal("Out of memory");
 
 	if((codec = avcodec_find_decoder(CODEC_ID_MPEG2VIDEO)) == NULL)
 		fatal("Unable to initialise MPEG decoder");
 
-	if(avcodec_open(codec_ctx, codec) < 0)
+	if(avcodec_open2(codec_ctx, codec, NULL) < 0)
 		fatal("Unable to open video codec");
 
 	if((yuv_frame = avcodec_alloc_frame()) == NULL)
@@ -895,14 +895,14 @@ MHEGDisplay_newMPEGBitmap(MHEGDisplay *d, OctetString *mpeg)
 	size = mpeg->size;
 	do
 	{
-		used = avcodec_decode_video(codec_ctx, yuv_frame, &got_picture, data, size);
+		used = my_avcodec_decode_video(codec_ctx, yuv_frame, &got_picture, data, size);
 		data += used;
 		size -= used;
 	}
 	while(!got_picture && size > 0);
 	/* need to call it one final time with size=0, to actually get the frame */
 	if(!got_picture)
-		(void) avcodec_decode_video(codec_ctx, yuv_frame, &got_picture, data, size);
+		(void) my_avcodec_decode_video(codec_ctx, yuv_frame, &got_picture, data, size);
 
 	if(!got_picture)
 	{

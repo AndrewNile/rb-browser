@@ -8,7 +8,7 @@
 #include "ISO13522-MHEG-5.h"
 
 void ResidentProgramClass_Preparation(ResidentProgramClass *);
-void ResidentProgramClass_Activation(ResidentProgramClass *);
+bool ResidentProgramClass_Activation(ResidentProgramClass *);
 void ResidentProgramClass_Deactivation(ResidentProgramClass *);
 void ResidentProgramClass_Destruction(ResidentProgramClass *);
 

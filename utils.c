@@ -69,6 +69,32 @@ find_av_pix_fmt(int bpp, unsigned long rmask, unsigned long gmask, unsigned long
 	return fmt;
 }
 
+/* deprecated FFMPEG functions that have now been removed */
+int
+my_avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples, int *frame_size_ptr, const uint8_t *buf, int buf_size)
+{
+	AVPacket avpkt;
+	av_init_packet(&avpkt);
+	avpkt.data = (uint8_t *) buf;
+	avpkt.size = buf_size;
+
+	return avcodec_decode_audio3(avctx, samples, frame_size_ptr, &avpkt);
+}
+
+int
+my_avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture, int *got_picture_ptr, const uint8_t *buf, int buf_size)
+{
+	AVPacket avpkt;
+	av_init_packet(&avpkt);
+	avpkt.data = (uint8_t *) buf;
+	avpkt.size = buf_size;
+	// HACK for CorePNG to decode as normal PNG by default
+	avpkt.flags = AV_PKT_FLAG_KEY;
+
+	return avcodec_decode_video2(avctx, picture, got_picture_ptr, &avpkt);
+}
+
+
 /*
  * returns 15 for 'f' etc
  */

@@ -824,6 +824,9 @@ feature_UKEngineProfile(OctetString *params)
 	/* UK MHEG Profile launch ID */
 	UKEP_MATCH("(2)");
 
+	/* Irish DTT value */
+	UKEP_MATCH("(1285)");
+
 	/* WhoAmI strings */
 	UKEP_MATCH("(" MHEG_RECEIVER_ID ")");
 	UKEP_MATCH("(" MHEG_ENGINE_ID ")");

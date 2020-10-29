@@ -125,16 +125,16 @@ StreamComponent_Destruction(StreamComponent *s)
 }
 
 void
-StreamComponent_play(StreamComponent *s, MHEGStreamPlayer *player)
+StreamComponent_play(StreamComponent *s)
 {
 	switch(s->choice)
 	{
 	case StreamComponent_audio:
-		MHEGStreamPlayer_setAudioStream(player, &s->u.audio);
+		MHEGStreamPlayer_setAudioStream(&s->u.audio);
 		break;
 
 	case StreamComponent_video:
-		MHEGStreamPlayer_setVideoStream(player, &s->u.video);
+		MHEGStreamPlayer_setVideoStream(&s->u.video);
 		break;
 
 	case StreamComponent_rtgraphics:
@@ -150,16 +150,16 @@ StreamComponent_play(StreamComponent *s, MHEGStreamPlayer *player)
 }
 
 void
-StreamComponent_stop(StreamComponent *s, MHEGStreamPlayer *player)
+StreamComponent_stop(StreamComponent *s)
 {
 	switch(s->choice)
 	{
 	case StreamComponent_audio:
-		MHEGStreamPlayer_setAudioStream(player, NULL);
+		MHEGStreamPlayer_setAudioStream(NULL);
 		break;
 
 	case StreamComponent_video:
-		MHEGStreamPlayer_setVideoStream(player, NULL);
+		MHEGStreamPlayer_setVideoStream(NULL);
 		break;
 
 	case StreamComponent_rtgraphics:

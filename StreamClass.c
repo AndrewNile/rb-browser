@@ -7,6 +7,8 @@
 #include "StreamComponent.h"
 #include "ExternalReference.h"
 #include "ContentBody.h"
+#include "GenericOctetString.h"
+#include "GenericContentReference.h"
 #include "si.h"
 #include "utils.h"
 
@@ -24,7 +26,7 @@ default_StreamClassInstanceVars(StreamClass *t, StreamClassInstanceVars *v)
 
 	v->CounterTriggers = NULL;
 
-	MHEGStreamPlayer_init(&v->player);
+	MHEGStreamPlayer_init();
 
 	return;
 }
@@ -32,7 +34,7 @@ default_StreamClassInstanceVars(StreamClass *t, StreamClassInstanceVars *v)
 void
 free_StreamClassInstanceVars(StreamClassInstanceVars *v)
 {
-	MHEGStreamPlayer_fini(&v->player);
+	MHEGStreamPlayer_fini();
 
 	LIST_FREE(&v->CounterTriggers, CounterTrigger, safe_free);
 
@@ -108,7 +110,7 @@ StreamClass_Activation(StreamClass *t)
 		 */
 		if(OctetString_strncmp(service, "dvb:", 4) == 0)
 		{
-			MHEGStreamPlayer_setServiceID(t->inst.player, si_get_service_id(service));
+			MHEGStreamPlayer_setServiceID(si_get_service_id(service));
 		}
 		else if(OctetString_strncmp(service, "rec://svc/lcn/", 14) == 0)
 		{
@@ -118,7 +120,7 @@ printf("TODO: StreamClass: service='%.*s'\n", service->size, service->data);
 		else if(OctetString_strcmp(service, "rec://svc/def") == 0)
 		{
 			/* use the service ID we are currently tuned to */
-			MHEGStreamPlayer_setServiceID(t->inst.player, -1);
+			MHEGStreamPlayer_setServiceID(-1);
 		}
 		/* leave player's service ID as it is for "rec://svc/cur" */
 		else if(OctetString_strcmp(service, "rec://svc/cur") != 0)
@@ -133,10 +135,10 @@ printf("TODO: StreamClass: service='%.*s'\n", service->size, service->data);
 	{
 		if((r = StreamComponent_rootClass(&comp->item)) != NULL
 		&& r->inst.RunningStatus)
-			StreamComponent_play(&comp->item, t->inst.player);
+			StreamComponent_play(&comp->item);
 		comp = comp->next;
 	}
-	MHEGStreamPlayer_play(t->inst.player);
+	MHEGStreamPlayer_play();
 
 	/* multiplex is now playing */
 	MHEGEngine_generateAsyncEvent(&t->rootClass.inst.ref, EventType_stream_playing, NULL);
@@ -177,13 +179,13 @@ StreamClass_Deactivation(StreamClass *t)
 	}
 
 	/* stop playing all active StreamComponents */
-	MHEGStreamPlayer_stop(t->inst.player);
+	MHEGStreamPlayer_stop();
 	comp = t->multiplex;
 	while(comp)
 	{
 		if((r = StreamComponent_rootClass(&comp->item)) != NULL
 		&& r->inst.RunningStatus)
-			StreamComponent_stop(&comp->item, t->inst.player);
+			StreamComponent_stop(&comp->item);
 		comp = comp->next;
 	}
 
@@ -260,12 +262,12 @@ StreamClass_activateVideoComponent(StreamClass *t, VideoClass *c)
 
 	/* if we are activated, stop playing while we change the component */
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_stop(t->inst.player);
+		MHEGStreamPlayer_stop();
 
-	MHEGStreamPlayer_setVideoStream(t->inst.player, c);
+	MHEGStreamPlayer_setVideoStream(c);
 
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_play(t->inst.player);
+		MHEGStreamPlayer_play();
 
 	return;
 }
@@ -282,12 +284,12 @@ StreamClass_activateAudioComponent(StreamClass *t, AudioClass *c)
 
 	/* if we are activated, stop playing while we change the component */
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_stop(t->inst.player);
+		MHEGStreamPlayer_stop();
 
-	MHEGStreamPlayer_setAudioStream(t->inst.player, c);
+	MHEGStreamPlayer_setAudioStream(c);
 
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_play(t->inst.player);
+		MHEGStreamPlayer_play();
 
 	return;
 }
@@ -304,12 +306,12 @@ StreamClass_deactivateVideoComponent(StreamClass *t, VideoClass *c)
 
 	/* if we are activated, stop playing while we change the component */
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_stop(t->inst.player);
+		MHEGStreamPlayer_stop();
 
-	MHEGStreamPlayer_setVideoStream(t->inst.player, NULL);
+	MHEGStreamPlayer_setVideoStream(NULL);
 
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_play(t->inst.player);
+		MHEGStreamPlayer_play();
 
 	return;
 }
@@ -326,12 +328,12 @@ StreamClass_deactivateAudioComponent(StreamClass *t, AudioClass *c)
 
 	/* if we are activated, stop playing while we change the component */
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_stop(t->inst.player);
+		MHEGStreamPlayer_stop();
 
-	MHEGStreamPlayer_setAudioStream(t->inst.player, NULL);
+	MHEGStreamPlayer_setAudioStream(NULL);
 
 	if(t->rootClass.inst.RunningStatus)
-		MHEGStreamPlayer_play(t->inst.player);
+		MHEGStreamPlayer_play();
 
 	return;
 }
@@ -344,11 +346,81 @@ StreamClass_deactivateAudioComponent(StreamClass *t, AudioClass *c)
 void
 StreamClass_SetData(StreamClass *t, SetData *set, OctetString *caller_gid)
 {
+	NewContent *n = &set->new_content;
+	OctetString *service;
+
 	verbose("StreamClass: %s; SetData", ExternalReference_name(&t->rootClass.inst.ref));
 
+	/*
+	 * normally you'd do:
+	 * NewContent_getContent(&set->new_content, caller_gid, &t->rootClass, &service)
+	 * but FreeSat sends us a ContentReference, not IncludedContent
+	 * so that would end up trying to load a file called "rec://svc/cur" and using its contents as the service
+	 * so treat both types as if the value of the ContentRef or the IncludedContent is what we should set the service to
+	 */
+	switch(n->choice)
+	{
+	case NewContent_new_included_content:
+		service = GenericOctetString_getOctetString(&n->u.new_included_content, caller_gid);
+		break;
+
+	case NewContent_new_referenced_content:
+		service = GenericContentReference_getContentReference(&n->u.new_referenced_content.generic_content_reference, caller_gid);
+		break;
+
+	default:
+		error("Unknown StreamClass NewContent type: %d", n->choice);
+		service = NULL;
+		break;
+	}
+
+	/* did we get a valid service */
+	if(service != NULL && service->size > 0)
+	{
+//TODO: now we do MHEGStreamPlayer_retuned, we probably want to ignore a SetData if it keeps the service ID the same as it currently is
+// new_service_id = -1; do the strncmps; if getServiceID != new_service_id {if(playing) stop; setServiceID; if(playing) play}
+		/* if playing, stop */
+		if(t->rootClass.inst.RunningStatus)
+			MHEGStreamPlayer_stop();
+// TODO: the below is very similar to StreamClass_Activation
+		/*
+		 * update the service ID
+		 * service can be:
+		 * "dvb://<original_network_id>.[<transport_stream_id>].<service_id>"
+		 * "rec://svc/def" - use the service we are downloading the carousel from
+		 * "rec://svc/cur" - use the current service
+		 * this will be the same as "def" unless SetData has been called on the StreamClass
+		 * "rec://svc/lcn/X" - use logical channel number X (eg 1 for BBC1, 3 for ITV1, etc)
+		 */
+		if(OctetString_strncmp(service, "dvb:", 4) == 0)
+		{
+			MHEGStreamPlayer_setServiceID(si_get_service_id(service));
+		}
+		else if(OctetString_strncmp(service, "rec://svc/lcn/", 14) == 0)
+		{
 /* TODO */
-printf("TODO: StreamClass_SetData not yet implemented\n");
-// MHEGEngine_setRecSvcCur(...)
+printf("TODO: StreamClass_SetData: service='%.*s'\n", service->size, service->data);
+		}
+		else if(OctetString_strcmp(service, "rec://svc/def") == 0
+		     || OctetString_strcmp(service, "rec://svc/cur") == 0)
+		{
+			/* use the service ID we are currently tuned to */
+			MHEGStreamPlayer_setServiceID(-1);
+		}
+		else
+		{
+			error("StreamClass: unexpected service '%.*s'", service->size, service->data);
+		}
+		/* if playing, restart, this also update audio/video PIDs */
+		if(t->rootClass.inst.RunningStatus)
+			MHEGStreamPlayer_play();
+//TODO: MHEGEngine_setRecSvcCur(service) - will need to copy 'service' contents
+printf("TODO: update rec://svc/cur\n");
+//TODO: make sure "rec://svc/cur" and "rec://svc/def" usage is still correct everywhere else
+//TODO: new service should replace original_content
+		/* ContentPreparation behaviour specified in the ISO MHEG Corrigendum */
+		MHEGEngine_generateAsyncEvent(&t->rootClass.inst.ref, EventType_content_available, NULL);
+	}
 
 	return;
 }

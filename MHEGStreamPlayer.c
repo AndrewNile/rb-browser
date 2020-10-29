@@ -127,7 +127,7 @@ free_AudioFrameListItem(LIST_TYPE(AudioFrame) *af)
 static MHEGStreamPlayer player;
 
 void
-MHEGStreamPlayer_init(MHEGStreamPlayer **p)
+MHEGStreamPlayer_init(void)
 {
 	static bool created = false;
 
@@ -168,22 +168,16 @@ MHEGStreamPlayer_init(MHEGStreamPlayer **p)
 
 	verbose("MHEGStreamPlayer: %u users", player.nusers);
 
-	*p = &player;
-
 	return;
 }
 
 void
-MHEGStreamPlayer_fini(MHEGStreamPlayer **p)
+MHEGStreamPlayer_fini(void)
 {
-	/* assert */
-	if(*p != &player)
-		fatal("MHEGStreamPlayer: *p=%p, &player=%p", *p, &player);
-
 	if(player.nusers == 0)
 		fatal("MHEGStreamPlayer: nusers is 0");
 
-	MHEGStreamPlayer_stop(&player);
+	MHEGStreamPlayer_stop();
 
 	player.nusers --;
 
@@ -199,8 +193,6 @@ MHEGStreamPlayer_fini(MHEGStreamPlayer **p)
 	}
 
 	verbose("MHEGStreamPlayer: %u users", player.nusers);
-
-	*p = NULL;
 
 #if 0
 	/* this is how you would destroy it */
@@ -221,11 +213,10 @@ MHEGStreamPlayer_fini(MHEGStreamPlayer **p)
  */
 
 void
-MHEGStreamPlayer_setServiceID(MHEGStreamPlayer *p, int id)
+MHEGStreamPlayer_setServiceID(int id)
 {
-	/* assert */
-	if(p != &player)
-		fatal("MHEGStreamPlayer_setServiceID: p=%p, &player=%p", p, &player);
+	/* there can be only one */
+	MHEGStreamPlayer *p = &player;
 
 	/* assert */
 	if(p->playing && p->service_id != id)
@@ -237,11 +228,10 @@ MHEGStreamPlayer_setServiceID(MHEGStreamPlayer *p, int id)
 }
 
 void
-MHEGStreamPlayer_setVideoStream(MHEGStreamPlayer *p, VideoClass *video)
+MHEGStreamPlayer_setVideoStream(VideoClass *video)
 {
-	/* assert */
-	if(p != &player)
-		fatal("MHEGStreamPlayer_setVideoStream: p=%p, &player=%p", p, &player);
+	/* there can be only one */
+	MHEGStreamPlayer *p = &player;
 
 	/* assert */
 	if(p->playing)
@@ -277,11 +267,10 @@ MHEGStreamPlayer_setVideoStream(MHEGStreamPlayer *p, VideoClass *video)
 }
 
 void
-MHEGStreamPlayer_setAudioStream(MHEGStreamPlayer *p, AudioClass *audio)
+MHEGStreamPlayer_setAudioStream(AudioClass *audio)
 {
-	/* assert */
-	if(p != &player)
-		fatal("MHEGStreamPlayer_setAudioStream: p=%p, &player=%p", p, &player);
+	/* there can be only one */
+	MHEGStreamPlayer *p = &player;
 
 	/* assert */
 	if(p->playing)
@@ -320,11 +309,10 @@ MHEGStreamPlayer_setAudioStream(MHEGStreamPlayer *p, AudioClass *audio)
 }
 
 void
-MHEGStreamPlayer_play(MHEGStreamPlayer *p)
+MHEGStreamPlayer_play(void)
 {
-	/* assert */
-	if(p != &player)
-		fatal("MHEGStreamPlayer_play: p=%p, &player=%p", p, &player);
+	/* there can be only one */
+	MHEGStreamPlayer *p = &player;
 
 	verbose("MHEGStreamPlayer_play: service_id=%d audio_tag=%d video_tag=%d", p->service_id, p->audio_tag, p->video_tag);
 
@@ -397,11 +385,10 @@ MHEGStreamPlayer_play(MHEGStreamPlayer *p)
 }
 
 void
-MHEGStreamPlayer_stop(MHEGStreamPlayer *p)
+MHEGStreamPlayer_stop(void)
 {
-	/* assert */
-	if(p != &player)
-		fatal("MHEGStreamPlayer_stop: p=%p, &player=%p", p, &player);
+	/* there can be only one */
+	MHEGStreamPlayer *p = &player;
 
 	verbose("MHEGStreamPlayer_stop");
 
@@ -412,7 +399,7 @@ MHEGStreamPlayer_stop(MHEGStreamPlayer *p)
 	/* signal the threads to stop */
 	p->stop = true;
 
-	/* wait for them to finish */
+	/* wait for the threads to finish */
 	pthread_join(p->decode_tid, NULL);
 	pthread_join(p->video_tid, NULL);
 	pthread_join(p->audio_tid, NULL);
@@ -421,6 +408,7 @@ MHEGStreamPlayer_stop(MHEGStreamPlayer *p)
 	LIST_FREE(&p->videoq, VideoFrame, free_VideoFrameListItem);
 	LIST_FREE(&p->audioq, AudioFrame, free_AudioFrameListItem);
 
+	/* free the MHEGStream object */
 	if(p->ts != NULL)
 	{
 		MHEGEngine_closeStream(p->ts);
@@ -430,6 +418,16 @@ MHEGStreamPlayer_stop(MHEGStreamPlayer *p)
 	p->playing = false;
 
 	return;
+}
+
+/*
+ * returns true if currently playing an A/V stream
+ */
+
+bool
+MHEGStreamPlayer_isPlaying(void)
+{
+	return player.playing;
 }
 
 /*
@@ -467,24 +465,24 @@ decode_thread(void *arg)
 
 	if(p->have_video && p->video_pid != -1)
 	{
-		if((video_codec_ctx = avcodec_alloc_context()) == NULL)
+		if((video_codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 			fatal("Out of memory");
 		if((codec_id = find_av_codec_id(p->video_type)) == CODEC_ID_NONE
 		|| (codec = avcodec_find_decoder(codec_id)) == NULL)
 			fatal("Unsupported video codec");
-		if(avcodec_open(video_codec_ctx, codec) < 0)
+		if(avcodec_open2(video_codec_ctx, codec, NULL) < 0)
 			fatal("Unable to open video codec");
 		verbose("MHEGStreamPlayer: Video: stream type=%d codec=%s", p->video_type, codec->name);
 	}
 
 	if(p->have_audio && p->audio_pid != -1)
 	{
-		if((audio_codec_ctx = avcodec_alloc_context()) == NULL)
+		if((audio_codec_ctx = avcodec_alloc_context3(NULL)) == NULL)
 			fatal("Out of memory");
 		if((codec_id = find_av_codec_id(p->audio_type)) == CODEC_ID_NONE
 		|| (codec = avcodec_find_decoder(codec_id)) == NULL)
 			fatal("Unsupported audio codec");
-		if(avcodec_open(audio_codec_ctx, codec) < 0)
+		if(avcodec_open2(audio_codec_ctx, codec, NULL) < 0)
 			fatal("Unable to open audio codec");
 		verbose("MHEGStreamPlayer: Audio: stream type=%d codec=%s", p->audio_type, codec->name);
 		/* let the audio ouput thread know what the sample rate, etc are */
@@ -514,7 +512,7 @@ decode_thread(void *arg)
 			{
 				audio_frame = new_AudioFrameListItem();
 				af = &audio_frame->item;
-				used = avcodec_decode_audio2(audio_codec_ctx, (int16_t *) af->data, (int *) &af->size, data, size);
+				used = my_avcodec_decode_audio2(audio_codec_ctx, (int16_t *) af->data, (int *) &af->size, data, size);
 				data += used;
 				size -= used;
 				if(used > 0 && af->size > 0)
@@ -543,7 +541,7 @@ decode_thread(void *arg)
 		}
 		else if(p->have_video && pkt.stream_index == p->video_pid && pkt.dts != AV_NOPTS_VALUE)
 		{
-			(void) avcodec_decode_video(video_codec_ctx, frame, &got_picture, pkt.data, pkt.size);
+			(void) my_avcodec_decode_video(video_codec_ctx, frame, &got_picture, pkt.data, pkt.size);
 			if(got_picture)
 			{
 				pts = pkt.dts / video_time_base;

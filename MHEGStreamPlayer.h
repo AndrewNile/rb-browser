@@ -14,6 +14,13 @@
 #include "ISO13522-MHEG-5.h"
 #include "MHEGBackend.h"
 
+#define CodecID AVCodecID
+#define SAMPLE_FMT_S32 AV_SAMPLE_FMT_S32
+#define SAMPLE_FMT_S16 AV_SAMPLE_FMT_S16
+#ifndef AVCODEC_MAX_AUDIO_FRAME_SIZE
+#define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio
+#endif
+
 /* seconds of video to buffer before we start playing it */
 #define INIT_VIDEO_BUFFER_WAIT	1.0
 
@@ -82,14 +89,16 @@ typedef struct
 	LIST_OF(AudioFrame) *audioq;	/* head of list is next to be played */
 } MHEGStreamPlayer;
 
-void MHEGStreamPlayer_init(MHEGStreamPlayer **);
-void MHEGStreamPlayer_fini(MHEGStreamPlayer **);
+void MHEGStreamPlayer_init(void);
+void MHEGStreamPlayer_fini(void);
 
-void MHEGStreamPlayer_setServiceID(MHEGStreamPlayer *, int);
-void MHEGStreamPlayer_setVideoStream(MHEGStreamPlayer *, VideoClass *);
-void MHEGStreamPlayer_setAudioStream(MHEGStreamPlayer *, AudioClass *);
+void MHEGStreamPlayer_setServiceID(int);
+void MHEGStreamPlayer_setVideoStream(VideoClass *);
+void MHEGStreamPlayer_setAudioStream(AudioClass *);
 
-void MHEGStreamPlayer_play(MHEGStreamPlayer *);
-void MHEGStreamPlayer_stop(MHEGStreamPlayer *);
+void MHEGStreamPlayer_play(void);
+void MHEGStreamPlayer_stop(void);
+
+bool MHEGStreamPlayer_isPlaying(void);
 
 #endif	/* __MHEGSTREAMPLAYER_H__ */

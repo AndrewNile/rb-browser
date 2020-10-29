@@ -6,7 +6,7 @@ Dependencies:
 
 sudo apt install libfreetype6-dev libavformat-dev libxft-dev ffmpeg-dev libavcodec-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev xsltproc
 
-To build simply run 'make' (presuming you have the usual build tools for your platform installed
+To build simply run 'make' (presuming you have the usual build tools for your platform installed)
 
 
 Usage:

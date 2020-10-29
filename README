@@ -1,6 +1,6 @@
-rb-browser
+RedButton Browser - part of RedButton MHEG Engine
 
-This is a fork of rb-browser with updates to make it work with modern ffmpeg libs, it has been tested on a typical Ubuntu 18.04 system.
+This is a fork of rb-browser by Simon Kilvington (https://sourceforge.net/u/skilvington/profile/). I have made changes to make it work with modern ffmpeg libs. It has been tested on a typical Ubuntu 18.04 system.
 
 Dependencies:
 

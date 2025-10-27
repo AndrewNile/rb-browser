@@ -84,16 +84,17 @@
 /* cmd line options */
 typedef struct
 {
-	bool remote;		/* or local rb-download backend */
+	bool remote;		  /* or local rb-download backend */
 	char *srg_loc;		/* service gateway location: directory for local; host[:port] for remote */
 	int network_id;		/* Network ID for local backends, used to resolve rec://svc/def (<0 => leave it blank) */
-	int verbose;		/* -v flag */
+	int service_id;		/* Service ID if specified */
+	int verbose;		  /* -v flag */
 	unsigned int timeout;	/* seconds to poll for missing content before generating a ContentRefError */
 	bool fullscreen;	/* scale to fullscreen? */
 	char *audio_dev;	/* ALSA audio device name */
 	char *vo_method;	/* MHEGVideoOutputMethod name (NULL for default) */
 	bool av_disabled;	/* true => audio and video output totally disabled */
-	char *keymap;		/* keymap config file to use (NULL for default) */
+	char *keymap;		  /* keymap config file to use (NULL for default) */
 } MHEGEngineOptions;
 
 /* a list of files we are waiting for, and the objects that want them */

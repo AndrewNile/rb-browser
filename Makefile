@@ -9,7 +9,7 @@ DESTDIR=/usr/local
 DEFS=-D_REENTRANT -D_GNU_SOURCE
 # safe_malloc debugging
 #DEFS=-DDEBUG_ALLOC -D_REENTRANT -D_GNU_SOURCE
-INCS=`freetype-config --cflags`
+INCS=`pkg-config freetype2 --cflags`
 LIBS=-lm -lz -L/usr/X11R6/lib -lX11 -lXext -lXt -lXrender -lXft -lpng -lavformat -lavcodec -lavutil -lasound -lpthread -lfontconfig -lfreetype -lswscale
 
 # if libswscale is not in libavcodec, add a -lswscale to the LIBS

@@ -886,9 +886,9 @@ MHEGDisplay_newMPEGBitmap(MHEGDisplay *d, OctetString *mpeg)
 		fatal("Out of memory");
 
 	/* ffmpeg may read passed the end of the buffer, so pad it out */
-	padded = safe_malloc(mpeg->size + FF_INPUT_BUFFER_PADDING_SIZE);
+	padded = safe_malloc(mpeg->size + AV_INPUT_BUFFER_PADDING_SIZE);
 	memcpy(padded, mpeg->data, mpeg->size);
-	memset(padded + mpeg->size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+	memset(padded + mpeg->size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
 
 	/* decode the YUV frame */
 	data = padded;

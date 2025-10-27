@@ -74,7 +74,7 @@ static struct MHEGBackendFns remote_backend_fns =
 /* public interface */
 
 void
-MHEGBackend_init(MHEGBackend *b, bool remote, char *srg_loc, int net_id)
+MHEGBackend_init(MHEGBackend *b, bool remote, char *srg_loc, int net_id, int svc_id)
 {
 	bzero(b, sizeof(MHEGBackend));
 
@@ -114,6 +114,13 @@ MHEGBackend_init(MHEGBackend *b, bool remote, char *srg_loc, int net_id)
 			snprintf(b->network_id, sizeof(b->network_id), "%x", net_id);
 		else
 			b->network_id[0] = '\0';
+			
+		/* svc_id < 0 means leave it blank */
+		if(svc_id >= 0)
+			b->service_id = svc_id;
+		else
+			b->service_id = -1;
+		
 		verbose("Local backend; carousel file root '%s'", srg_loc);
 		/* initialise rec://svc/def value */
 		local_set_service_url(b);
@@ -368,17 +375,25 @@ local_set_service_url(MHEGBackend *t)
 	char url[1024];
 	size_t len;
 
-	/* base_dir is: [path/to/services/]<service_id> */
-	slash = strrchr(t->base_dir, '/');
-	if(slash == NULL)
+	/* check if it's been overridden at the command line */
+	if (t->service_id >= 0)
 	{
-		/* no preceeding path */
-		service_id = atoi(t->base_dir);
+		service_id = t->service_id;
 	}
 	else
 	{
-		prefix_len = (slash - t->base_dir) + 1;
-		service_id = atoi(t->base_dir + prefix_len);
+		/* base_dir is: [path/to/services/]<service_id> */
+		slash = strrchr(t->base_dir, '/');
+		if(slash == NULL)
+		{
+			/* no preceeding path */
+			service_id = atoi(t->base_dir);
+		}
+		else
+		{
+			prefix_len = (slash - t->base_dir) + 1;
+			service_id = atoi(t->base_dir + prefix_len);
+		}
 	}
 
 	/* create a fake dvb:// format URL */
@@ -524,6 +539,16 @@ local_checkContentRef(MHEGBackend *t, ContentReference *name)
 {
 	bool found = false;
 	FILE *file;
+	struct stat st;
+
+	if (stat(external_filename(t, name), &st) == 0)
+	{
+		if (S_ISDIR(st.st_mode))
+		{
+			/* It's a directory, not a file */
+			return false;
+		}
+	}
 
 	if((file = fopen(external_filename(t, name), "r")) != NULL)
 	{
@@ -653,6 +678,10 @@ local_isServiceAvailable(MHEGBackend *t, OctetString *service)
 	/* assert */
 	if(service->size < 6 || strncmp((char *) service->data, "dvb://", 6) != 0)
 		fatal("local_isServiceAvailable: invalid service '%.*s'", service->size, service->data);
+
+	/* if it was specified at the command line, then always yes */
+	if(t->service_id >= 0)
+		return true;
 
 	/* extract the service_id */
 	service_id = si_get_service_id(service);

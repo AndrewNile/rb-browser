@@ -1,5 +1,5 @@
 /*
- * rb-browser [-v] [-f] [-d] [-a <alsa_device>] [-o <video_output_method>] [-k <keymap_file>] [-t <timeout>] [-n <network_id>] [-r] [<service_gateway>]
+ * rb-browser [-v] [-f] [-d] [-a <alsa_device>] [-o <video_output_method>] [-k <keymap_file>] [-t <timeout>] [-n <network_id>] [-s <service_id>] [-r] [<service_gateway>]
  *
  * -v is verbose/debug mode
  * -f is full screen, otherwise it uses a window
@@ -60,9 +60,10 @@ main(int argc, char *argv[])
 	opts.av_disabled = false;
 	opts.timeout = MISSING_CONTENT_TIMEOUT;
 	opts.keymap = NULL;
-	opts.network_id = -1;		/* => leave it blank */
+	opts.network_id = 9018;		/* => UK Freeview = 0x233a */
+	opts.service_id = -1;		/* => leave it blank */
 
-	while((arg = getopt(argc, argv, "rvfda:o:k:t:n:")) != EOF)
+	while((arg = getopt(argc, argv, "rvfda:o:k:t:n:s:")) != EOF)
 	{
 		switch(arg)
 		{
@@ -100,6 +101,10 @@ main(int argc, char *argv[])
 
 		case 'n':
 			opts.network_id = strtoul(optarg, NULL, 0);
+			break;
+			
+		case 's':
+			opts.service_id = strtoul(optarg, NULL, 0);
 			break;
 
 		default:
@@ -144,6 +149,7 @@ usage(char *prog_name)
 		"[-k <keymap_file>] "
 		"[-t <timeout>] "
 		"[-n <network_id>] "
+		"[-s <service_id>] "
 		"[-r] "
 		"[<service_gateway>]\n\n"
 		"%s\n",
